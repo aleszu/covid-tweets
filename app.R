@@ -13,14 +13,9 @@ library(jsonlite)
 library(metathis)
 library(fuzzyjoin)
 
-
-# Keywords data from Damian 
-# Updated 2020-10-07
+# Keywords data from Damian Ruck
+# Updated 2020-10-17
 keywords_melted <- fread("keywords_melted_Oct17.csv")
-# keyword_state_timeseries_Oct16 <- fread("keyword_state_timeseries101620.tsv")
-# keyword_state_timeseries_Oct16 <- keyword_state_timeseries_Oct16 %>%
-#   select(-keyword_category) 
-# keyword_state_timeseries_Oct16$state <- str_replace_all(keyword_state_timeseries_Oct16$state, "national", "National") 
 
 # ****************************************
 # Data that's preprocessed by Aleszu
@@ -35,9 +30,8 @@ state_domain_leaderboards_Oct7 <- fread("state_domain_leaderboards_Oct7.csv")
 state_url_leaderboards_lastmonth_top10_titles <- fread("state_and_national_url_months1thru9_top10_titles.csv")
 state_url_leaderboards_lastmonth_top10_titles$first_date <- as.Date(state_url_leaderboards_lastmonth_top10_titles$first_date)
 
-# TFIDF of top 10 URLs title scrape by state
+# TFIDF of URLs since January, top 50 have titles scraped
 # Updated 2020-10-07
-# Should probably be done across more than 1 month ******** 
 tfidf_top50_titles <- fread("tfidf_top50_titles_Oct7.csv")
 
 # Ingest **pre-processed** monthly ranked leaderboards 
@@ -59,31 +53,22 @@ shortenedurls <- c("bit.ly", "ow.ly", "trib.al", "buff.ly", "dlvr.it", "flip.it"
 # Colors
 colors_demo <- c("18-29" = "lightblue", "30-49"= "#FFE523", "50-64"="#b1ab99", ">65"= "#635e4e")
 colors_party <- c("Democrat" = "#59a2e9", "Independent" = "#228B22", "Republican" = "#863605")
-colors_keywords <- c("#789a6f", "#800080")
-
-# credentials <- data.frame(
-#     user = c("masks", "reopen"), # mandatory
-#     password = c("masks", "reopen"), # mandatory
-#     start = c("2020-07-15"), # optional (all others)
-#     expire = c(NA, "2021-12-31"),
-#     admin = c(FALSE, TRUE),
-#     comment = "Enter password",
-#     stringsAsFactors = FALSE
-# )
 
 ui <- navbarPage("Covid-19 tweets", 
                  id = 'menu',
                  tabPanel("How to use this tool", 
                           shinyjs::useShinyjs(),
-                          
                           fluidPage(
                             meta() %>%
                               meta_social(
                                 title = "Covid-19 tweets",
-                                description = "The Covid-19 tweets project from Northeastern University's Lazer Lab and Network Science Institute",
+                                description = "Explore top links, domains and keywords from 29 million Covid-related tweets. From Northeastern University's Lazer Lab and Network Science Institute.", 
                                 url = "https://storybench.shinyapps.io/covid-tweets",
                                 image = "https://storybench.org/statelogos/covid-shiny-preview.jpg",
                                 image_alt = "Covid-19 tweets project from Northeastern University",
+                                og_type = "website",
+                                og_site_name = "Covid-19 tweets", 
+                                og_author = c("Aleszu Bajak", "Lazer Lab"),
                                 twitter_creator = "@aleszubajak",
                                 twitter_card_type = "summary"
                               ),
@@ -97,7 +82,7 @@ ui <- navbarPage("Covid-19 tweets",
                                            display:block; }"),
                               tags$style(HTML(".navbar-default .navbar-brand {color: #000000;}"))), 
                              # tags$div(class="tagline",
-                            #           tags$p("The Covid-19 tweets project at Northeastern University aims to understand how users across the United States are sharing pandemic-related information", 
+                             #          tags$p("The Covid-19 tweets project at Northeastern University aims to understand how users across the United States are sharing pandemic-related information", 
                              #                 align="right", style = "float:right; width: 400px; font-size: 8pt; font-style: italic;")),
                               br(),
                               hr(),
@@ -217,7 +202,6 @@ ui <- navbarPage("Covid-19 tweets",
                               br(),
                               br()
                        )
-                          
                  ),
                  tabPanel("Top keywords",
                           fluidPage(
@@ -310,6 +294,11 @@ ui <- navbarPage("Covid-19 tweets",
                                      h4("Keywords"),
                                      div("We track the frequency of our COVID-19 search terms on a daily basis. We only include keywords that have been shared more than ten times between January 1st and September 30th, 2020."),
                                      br(),
+                                     div("The media attention feature searches",
+                                         tags$a(href="https://mediacloud.org", "Media Cloud's", target="_blank"),
+                                         "'U.S. Top Newspapers 2018' collection of 50 media sources -- including The Washington Post, The New York Times, USA TODAY and The Wall Street Journal -- which is based on research from the Pew Research Center published in August 2019. A full list of sources can be found ",
+                                         tags$a(href="https://sources.mediacloud.org/#/collections/186572435", "here.", target="_blank")
+                                         ),
                                      br(),
                                      br(),
                                      br(),
@@ -327,20 +316,8 @@ ui <- navbarPage("Covid-19 tweets",
                  
 )
 
-# UNCOMMENT TO PROMPT FOR PASSWORD
-# ui <- secure_app(ui)
-
 server <- function(input, output, session) {
     
-    # UNCOMMENT TO PROMPT FOR PASSWORD
-    # res_auth <- secure_server(
-    #     check_credentials = check_credentials(credentials)
-    # )
-    # 
-    # output$auth_output <- renderPrint({
-    #     reactiveValuesToList(res_auth)
-    # })
-  
     observe(
         {
           updateSelectInput(session,
@@ -358,18 +335,12 @@ server <- function(input, output, session) {
         }
     )
     
-    
-    
     shinyjs::addClass(id = "menus", class = "navbar-right")
     
-    #addResourcePath(prefix = 'statessprites', directoryPath = 'states-sprites')
-    # Can't get "addResourcePath()" to work to pull state sprites from local directory
-
     output$how_to_covid_tweets <- renderUI({
       tags$img(src = "https://storybench.org/statelogos/how-to-covid-tweets.gif")
     })
-    
-    
+
     c_url <- reactive({
       shiny::validate(
             shiny::need(input$state,"Choose a state")
@@ -445,19 +416,13 @@ server <- function(input, output, session) {
     })
     
     output$googletrendstext <- renderText({
-      
       paste0("Search Google Trends for interest in '",input$keyword3,"' by clicking ")
-      
     })
     
     output$googletrends <- renderUI({
-      
       tags$a(href = paste0("https://trends.google.com/trends/explore?q=%22", input$keyword3,"%22&geo=US"), "Search Google Trends for keyword interest")
-    
     })
-      
-      
-    
+
     output$input_state_keywordtitle <- renderText({
       statename <- state_abbr_and_names %>%
         filter(state == input$state) %>%
@@ -467,11 +432,9 @@ server <- function(input, output, session) {
       state_title
     })
     
-    
     # TOP LINKS
     
     output$output_top10_table <- DT::renderDataTable({
-
         shiny::validate(
             shiny::need(input$state,"Choose a state")
         )
@@ -493,16 +456,14 @@ server <- function(input, output, session) {
                    buttons = list('copy', list(extend = 'csv', filename= 'covid-tweets-top10-urls'))
                    ),
     escape = FALSE)
-    
-      
+  
     # TF-IDF table
     
     output$output_top10_distinctive_table <-  DT::renderDataTable({
-
       shiny::validate(
             shiny::need(input$state,"Choose a state")
         )
-
+      
         output_top50_distinctive_table <- tfidf_top50_titles %>%
             filter(state == input$state) %>%
             rename(first_shared = first_date) %>%
@@ -511,15 +472,12 @@ server <- function(input, output, session) {
             mutate(title = paste0("<a href='", url,"' target='_blank'>", title,"</a>")) %>%
             select(title, count, first_shared, domain, total_shares) 
         output_top50_distinctive_table
-
-
     },
     extensions = 'Buttons',
     options = list(dom = 'Blftp',
                    buttons = list('copy', list(extend = 'csv', filename='covid-tweets-top-distinctive-urls'))
                    ),
     escape=FALSE)
-    
     
     # Top domains ranked month over month
     
@@ -552,7 +510,6 @@ server <- function(input, output, session) {
         top_9_viz_final <- ggplot(top_9_domains_viz, aes(x=month, y=rank, color="firebrick")) +
             geom_line() +
             scale_y_reverse() +
-            #scale_x_date(date_breaks = "2 months", date_labels = "%b") +
             xlab("") +
             theme_minimal() +
             facet_wrap(~domain, ncol=3) +
@@ -560,7 +517,6 @@ server <- function(input, output, session) {
         
         top_9_viz_plotly <- ggplotly(top_9_viz_final, tooltip=c("month", "rank"))
         top_9_viz_plotly 
-        
     })
     
     # Top domains table
@@ -641,13 +597,11 @@ server <- function(input, output, session) {
     # Top domains by party
     
     output$domains_party <- renderPlotly({
-        
-        
+
       shiny::validate(
             shiny::need(input$state,"Choose a state")
         )
-        
-        
+
         state_topdomains_demos <- state_domain_leaderboards_Oct7 %>%
             filter(state == input$state) %>% # CHANGE STATE INPUT
             filter(!domain %in% shortenedurls) %>%
@@ -676,10 +630,8 @@ server <- function(input, output, session) {
         
         party_plotly <- ggplotly(stacked_party, tooltip=c("share", "party")) 
         party_plotly
-        
     })
-    
-    
+
     # KEYWORD SEARCH
     
     output$mainbarchart <- renderPlotly({
@@ -700,79 +652,18 @@ server <- function(input, output, session) {
       
       p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=search_term)) + # or 'value'
         geom_line() + theme_minimal() + ylab("daily total") + xlab("") 
-        #scale_color_manual(values=colors_keywords) 
-        
+      
       p_interactive <- ggplotly(p, dynamicTicks = TRUE) %>%
         rangeslider() %>%
         layout(hovermode = "x")
       p_interactive
-      
     })
-    
-    # selectedData_search1 <- reactive({
-    #     req(input$keyword1)   
-    # 
-    #     DT.m2 <- keyword_state_timeseries_Oct16[keyword %like% input$keyword1]   
-    #     DT.m2 = melt(DT.m2,
-    #                  id = c("keyword", "state"),
-    #                  variable.name = "date",
-    #                  value.name = "value")
-    #     
-    #     DT_search1 <- DT.m2[, search_term := input$keyword1]  
-    #     set(DT_search1, j = "date", value = as.IDate(strptime(DT_search1[,date], "%Y-%m-%d")))
-    #     DT_search1
-    # })
-    # 
-    # selectedData_search2 <- reactive({
-    #    req(input$keyword2)   
-    #   
-    #    #keyword2react <- reactive({ input$keyword2 })
-    #      DT.m3 <- keyword_state_timeseries_Oct16[keyword %like% input$keyword2]  
-    #      DT.m3 = melt(DT.m3,
-    #                   id = c("keyword", "state"),
-    #                   variable.name = "date",
-    #                   value.name = "value")
-    #      
-    #      DT_search2 <- DT.m3[, search_term := input$keyword2]   
-    #      set(DT_search2, j = "date", value = as.IDate(strptime(DT_search2[,date], "%Y-%m-%d")))
-    #      DT_search2
-    #    
-    #    
-    # })
-    # 
-    # output$mainbarchart  <- renderPlotly({
-    # 
-    #     df1<-as.data.frame(selectedData_search1())
-    #     df2<-as.data.frame(selectedData_search2())
-    # 
-    #     bind_search_terms <- bind_rows(df1, df2)
-    # 
-    #     bind_search_terms_summarized <- bind_search_terms %>%
-    #         filter(state == input$state) %>%     
-    #         group_by(search_term, date) %>%
-    #         summarise(daily_total = sum(value), .groups = 'drop')
-    # 
-    #     p <- ggplot(bind_search_terms_summarized, aes(date, daily_total, color=search_term)) + 
-    #         geom_line() + theme_minimal() + ylab("daily total") + xlab("") +
-    #         scale_color_manual(values=colors_keywords)
-    # 
-    #     p_interactive <- ggplotly(p, dynamicTicks = TRUE) %>%
-    #         rangeslider() %>%
-    #         layout(hovermode = "x")
-    #     p_interactive
-    # 
-    # })
     
     output$mediacloud  <- renderPlotly({
 
-    #req(input$keyword3)
-
-    #query1 <- URLencode(paste(c(input$keyword3), collapse = "%20"))
-
-    # Media Cloud credentials
     mc.key <- "2a54451396c08c15a024d81bffa18e6ce3bd5bfc9296363581e405ff4fcece80"
     mc.q1 <- "https://api.mediacloud.org/api/v2/stories_public/count?q="
-    mc.q2 <- "&split=1&split_period=day&fq=publish_date:%5B2020-01-01T00:00:00.000Z+TO+2020-09-30T00:00:00.000Z%5D&key="
+    mc.q2 <- "&split=1&split_period=day&fq=tags_id_media:186572435&publish_date:%5B2020-01-01T00:00:00.000Z+TO+2020-09-30T00:00:00.000Z%5D&key="
 
     mc.query1 <- jsonlite::fromJSON(paste0(mc.q1, input$keyword3, mc.q2, mc.key))$counts
 
@@ -782,16 +673,14 @@ server <- function(input, output, session) {
     p_mediacloud <- ggplot(mc.query1, aes(date, count)) +
       geom_line(stat="identity") +
       theme_minimal() +
-      ylab("Sentences per day") +
+      ylab("Stories per day") +
       xlab("") +
-      #  ylim(0,10000) +
       scale_x_date(breaks = date_breaks("1 week"), labels = date_format("%d %b"))
 
     p_mediacloud_interactive <- ggplotly(p_mediacloud, dynamicTicks = TRUE) %>%
       rangeslider() %>%
       layout(hovermode = "x")
     p_mediacloud_interactive
-
     })
     
     # Top keywords table 
@@ -812,9 +701,7 @@ server <- function(input, output, session) {
         formatStyle(
             'total',
             background = styleColorBar(range(topkeywords_tbl$total), 'lightblue')) 
-    
     topkeywords_tbl_format
-
     })
     
 }
