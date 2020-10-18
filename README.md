@@ -2,9 +2,9 @@
 
 ## Authors
 
-These findings are the product of a collaboration at Lazer Labs at the Network Science Institute, Northeastern University, Boston. Visit us at https://lazerlab.net/
+These findings are the product of a collaboration at [Lazer Labs](https://lazerlab.net/) at the Network Science Institute, Northeastern University, Boston. 
 
-This app was built by Aleszu Bajak, at Northeastern's School of Journalism, with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab. 
+This app was built by [Aleszu Bajak](http://aleszu.com/), at Northeastern's School of Journalism, with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab. 
 
 ## Full written report
 
