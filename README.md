@@ -1,10 +1,10 @@
 # Covid-19 tweets
 
-A dashboard created by researchers at the Lazer Lab to explore the top links, domains and keywords extracted from 29 million tweets related to Covid-19 shared between January 1st and September 30th, 2020 by over half a million Americans for whom we have demographic information such as age, state of residence and political party registration. 
+A dashboard I created with researchers at Northeastern University's [Lazer Lab](https://lazerlab.net/) to explore the top links, domains and keywords extracted from 29 million tweets related to Covid-19 shared between January 1st and September 30th, 2020 by over half a million Americans for whom we have demographic information such as age, state of residence and political party registration. 
 
 ## Authors
 
-These findings are the product of a collaboration at [Lazer Labs](https://lazerlab.net/) at the Network Science Institute, Northeastern University, Boston. 
+These findings are the product of a collaboration at [Lazer Lab](https://lazerlab.net/) at the Network Science Institute, Northeastern University, Boston. 
 
 This app was built by [Aleszu Bajak](http://aleszu.com/), at Northeastern's School of Journalism, with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab. 
 
