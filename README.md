@@ -38,3 +38,5 @@ We present the most shared domains in each state and nationally. We also breakdo
 
 We track the frequency of our COVID-19 search terms on a daily basis. We only include keywords that have been shared more than ten times between January 1st and September 30th 2020.  
 
+The media attention feature searches [Media Cloud's](https://mediacloud.org) 'U.S. Top Newspapers 2018' collection of 50 media sources -- including The Washington Post, The New York Times, USA TODAY and The Wall Street Journal -- which is based on research from the Pew Research Center published in August 2019. A full list of sources can be found [here](https://sources.mediacloud.org/#/collections/186572435).
+
