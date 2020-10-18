@@ -12,6 +12,12 @@ Demographics of COVID-19 fake news sharing on Twitter
 
 ## Visualization app
 
+[Explore app here](https://storybench.shinyapps.io/covid-tweets/).
+
+## How to use 
+
+![gif](https://github.com/aleszu/covid-tweets/blob/main/how-to-covid-tweets.gif)
+
 # About the data
 
 Between January 1st and September 30th 2020, we collected COVID-19 related tweets from registered voters in America. We examined the content posted by a list of accounts matched to demographic information such as age, race, gender and political party affiliation. Our full panel contains 1.6 million accounts, of which 527,958 tweeted about COVID-19. The total number of COVID-19 tweets is 29,662,169. We then collected all the URLs shared by our panel and removed URLs from platforms, such as youtube, facebook, instagram etc, so our sample contains mainly news domains.  
