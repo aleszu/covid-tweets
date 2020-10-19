@@ -2,26 +2,35 @@
 library(shiny)
 library(shinymanager)
 library(shinythemes)
+library(metathis) 
+library(shinycssloaders)
+
 library(tidyverse)
 library(data.table)
-library(DT)
+
 library(forcats)
-library(plotly)
 library(scales)
 library(stringr)
 library(jsonlite)
-library(metathis)
-library(fuzzyjoin)
+library(fuzzyjoin) 
 
-# Keywords data from Damian Ruck
+library(DT)
+library(plotly)
+
+# Keywords data
 # Updated 2020-10-17
-keywords_melted <- fread("keywords_melted_Oct17.csv")
+keyword_state_timeseries <- fread("keyword_state_timeseries101620.tsv")
+keyword_state_timeseries$state <- str_replace_all(keyword_state_timeseries$state, "national", "National")
+keyword_state_timeseries <- keyword_state_timeseries %>%
+  select(-keyword_category)
+keywords_melted <- melt(keyword_state_timeseries,
+                       id = c("keyword", "state"),
+                       variable.name = "date",
+                       value.name = "value")
 
-# ****************************************
-# Data that's preprocessed by Aleszu
-# ****************************************
+keywords_melted_topkeywords_perstate <- fread("keywords_melted_topkeywords_perstate.csv")
 
-# Data from Leaderboards that has national domain leaderboards folded in  
+# Leaderboards data (state + national)
 # Updated 2020-10-07
 state_domain_leaderboards_Oct7 <- fread("state_domain_leaderboards_Oct7.csv")
 
@@ -30,7 +39,7 @@ state_domain_leaderboards_Oct7 <- fread("state_domain_leaderboards_Oct7.csv")
 state_url_leaderboards_lastmonth_top10_titles <- fread("state_and_national_url_months1thru9_top10_titles.csv")
 state_url_leaderboards_lastmonth_top10_titles$first_date <- as.Date(state_url_leaderboards_lastmonth_top10_titles$first_date)
 
-# TFIDF of URLs since January, top 50 have titles scraped
+# TFIDF of URLs since January, top 50 have had titles scraped
 # Updated 2020-10-07
 tfidf_top50_titles <- fread("tfidf_top50_titles_Oct7.csv")
 
@@ -38,7 +47,7 @@ tfidf_top50_titles <- fread("tfidf_top50_titles_Oct7.csv")
 # Updated 2020-10-07
 state_domain_leaderboards_monthy_all <- fread("state_domain_leaderboards_monthy_all_Oct7.csv")
 
-# State abreviations and names
+# State abbreviations and names
 state_abbr_and_names <- fread("state_abbr_and_names.csv")
 
 # Demos
@@ -54,6 +63,7 @@ shortenedurls <- c("bit.ly", "ow.ly", "trib.al", "buff.ly", "dlvr.it", "flip.it"
 colors_demo <- c("18-29" = "lightblue", "30-49"= "#FFE523", "50-64"="#b1ab99", ">65"= "#635e4e")
 colors_party <- c("Democrat" = "#59a2e9", "Independent" = "#228B22", "Republican" = "#863605")
 
+# Shiny app
 ui <- navbarPage("Covid-19 tweets", 
                  id = 'menu',
                  tabPanel("How to use this tool", 
@@ -80,10 +90,8 @@ ui <- navbarPage("Covid-19 tweets",
                                            color:black;
                                            padding-bottom: 10px;
                                            display:block; }"),
+                              #tags$head(includeHTML(("tracker.html"))),
                               tags$style(HTML(".navbar-default .navbar-brand {color: #000000;}"))), 
-                             # tags$div(class="tagline",
-                             #          tags$p("The Covid-19 tweets project at Northeastern University aims to understand how users across the United States are sharing pandemic-related information", 
-                             #                 align="right", style = "float:right; width: 400px; font-size: 8pt; font-style: italic;")),
                               br(),
                               hr(),
                             fluidRow(
@@ -165,7 +173,7 @@ ui <- navbarPage("Covid-19 tweets",
                                          uiOutput("statelogo3")
                                          ),
                                   column(5, 
-                                         h4("Top domains shared since September 1", align = "center"),
+                                         h4("Top domains shared from January 1 to September 30", align = "center"),
                                          br(),
                                          DTOutput("top_domains","100%"), align="center"),
                                   column(5, 
@@ -175,19 +183,19 @@ ui <- navbarPage("Covid-19 tweets",
                               ),
                               
                               hr(),
-                              h4("Sharing demographics of top domains since January", align="center"),
+                              h4("Sharing demographics of top domains from January 1 to September 30", align="center"),
                               br(),
                               fluidRow(
                                   column(2),
                                   column(2, align="center",
                                          selectInput("demo",
-                                                     "Sort by age group",
+                                                     "Filter by age group",
                                                      choices = c(demo_select$demo), selected="50-64")
                                   ),
                                   column(4),
                                   column(2, align="center",
                                          selectInput("party",
-                                                     "Sort by party",
+                                                     "Filter by party",
                                                      choices = c(party_select$party),selected="Republican")
                                   ),
                                   column(2)
@@ -221,7 +229,9 @@ ui <- navbarPage("Covid-19 tweets",
                                          p("Separate multiple terms with comma")#masks
                                   ),
                                   column(10,
-                                         plotlyOutput("mainbarchart", "90%", 500), align="center")
+                                         shinycssloaders::withSpinner(plotlyOutput("mainbarchart", "90%", 500), color = "#C0C0C0"),
+                                         align="center"
+                                         )
                                   
                               ),
                               br(),
@@ -241,19 +251,19 @@ ui <- navbarPage("Covid-19 tweets",
                                          tags$a(uiOutput("googletrends"))
                                        )
                                 ), 
-                                column(9,
-                                       h4("Media coverage as measured by Media Cloud", align = "center"),
-                                       plotlyOutput("mediacloud", "90%", 500), align="center"
-                                       ),
-                                column(1)
+                                column(10,
+                                       #h4("Media coverage as measured by Media Cloud", align = "center"),
+                                       shinycssloaders::withSpinner(plotlyOutput("mediacloud", "90%", 500), color = "#C0C0C0"), 
+                                       align="center"
+                                       )
                               ),
                               br(),
                               br(),
                               fluidRow(column(2), 
-                                            column(9, 
-                                                 h4(textOutput("input_state_keywordtitle")),
-                                                 id="topkeywords", 
-                                                 DTOutput("topkeywords","100%"), align="center"),
+                                             column(9, 
+                                                  h4(textOutput("input_state_keywordtitle")),
+                                                  id="topkeywords", 
+                                                  DTOutput("topkeywords","100%"), align="center"),
                                          column(1)
                               ), 
                               fluidRow( br(),
@@ -271,7 +281,7 @@ ui <- navbarPage("Covid-19 tweets",
                                      br(),
                                      div("These findings are the product of a collaboration at the ",
                                          tags$a(href="https://lazerlab.net/", "Lazer Lab", target="_blank"),
-                                         " at the Network Science Institute, Northeastern University, Boston."),
+                                         " at the Network Science Institute, Northeastern University, Boston. For additional information and press requests, contact David Lazer (d.lazer@neu.edu)."),
                                      br(),
                                      div("This app was built by ",
                                          tags$a(href="http://aleszu.com/", "Aleszu Bajak", target="_blank"), 
@@ -300,6 +310,8 @@ ui <- navbarPage("Covid-19 tweets",
                                          tags$a(href="https://sources.mediacloud.org/#/collections/186572435", "here.", target="_blank")
                                          ),
                                      br(),
+                                     h4("Download the data"),
+                                     div("Data and figures are available to download via the CSV option on tables and the camera icon on interactive plots."),
                                      br(),
                                      br(),
                                      br(),
@@ -307,7 +319,8 @@ ui <- navbarPage("Covid-19 tweets",
                                      tags$a(href="https://targetearly.targetsmart.com/modeling.html", "Targetsmart", target="_blank")
                                      ),
                                      br(),
-                                     div("2. Gallagher, R. J., Doroshenko, L., Shugars, S., Lazer, D., & Welles, B. F. (2020). Sustained Online Amplification of COVID-19 Elites in the United States. http://arxiv.org/abs/2009.07255"),
+                                     div("2. Gallagher, R. J., Doroshenko, L., Shugars, S., Lazer, D., & Welles, B. F. (2020). ",
+                                     tags$a(href="http://arxiv.org/abs/2009.07255", "Sustained Online Amplification of COVID-19 Elites in the United States.", target="_blank")),
                                      br(),
                                      br()
                           ) 
@@ -402,7 +415,7 @@ server <- function(input, output, session) {
           select(name) %>%
           as.character() 
         
-        state_title <- paste("Top", statename, "links shared since ", input$month, "1") 
+        state_title <- paste("Top", statename, "links shared in ", input$month) 
         state_title
     })
     
@@ -411,16 +424,12 @@ server <- function(input, output, session) {
         filter(state == input$state) %>%
         select(name) %>%
         as.character() 
-      state_title <- paste("Top 50 links distinctive to", statename, "since January 1") 
+      state_title <- paste("Top 50 links distinctive to", statename, "from January 1 to September 30") 
       state_title
     })
     
-    output$googletrendstext <- renderText({
-      paste0("Search Google Trends for interest in '",input$keyword3,"' by clicking ")
-    })
-    
     output$googletrends <- renderUI({
-      tags$a(href = paste0("https://trends.google.com/trends/explore?q=%22", input$keyword3,"%22&geo=US"), "Search Google Trends for keyword interest")
+      tags$a(href = paste0("https://trends.google.com/trends/explore?q=%22", input$keyword3,"%22&geo=US"), "Search Google Trends for keyword interest", target="_blank")
     })
 
     output$input_state_keywordtitle <- renderText({
@@ -428,7 +437,7 @@ server <- function(input, output, session) {
         filter(state == input$state) %>%
         select(name) %>%
         as.character() 
-      state_title <- paste("Most popular", statename, "keywords since January 1") 
+      state_title <- paste("Most popular", statename, "keywords from January 1 to September 30") 
       state_title
     })
     
@@ -479,7 +488,7 @@ server <- function(input, output, session) {
                    ),
     escape=FALSE)
     
-    # Top domains ranked month over month
+    # TOP DOMAINS ranked month over month
     
     output$top_domains_rank <- renderPlotly({
         
@@ -527,13 +536,13 @@ server <- function(input, output, session) {
             shiny::need(input$state,"Choose a state")
         )
         
-        state_month <- state_domain_leaderboards_monthy_all %>%
+        state_month <- state_domain_leaderboards_Oct7 %>%
             filter(state== input$state) %>%      # CHANGE STATE2 INPUT
             filter(!domain %in% shortenedurls)
         
         state_month_topdomains <- state_month %>%
-            select(domain, count, unique_users, month) %>%
-            filter(month == "2020-09-01" ) %>% # CHANGE MONTH INPUT 
+            select(domain, count, unique_users) %>% #, month) %>%
+            #filter(month == "2020-09-01" ) %>% # CHANGE MONTH INPUT 
             arrange(desc(count)) %>%
             slice_max(count, n=100)
         
@@ -637,62 +646,68 @@ server <- function(input, output, session) {
     output$mainbarchart <- renderPlotly({
       
       search_term <- strsplit(input$keywords, ",")[[1]] %>% str_trim()
-      #search_term <- search_term
-      #search_term <- c(inputkeywords)
       search_term_df <- as.data.frame(search_term)
       search_term_df$search_term <- as.character(search_term_df$search_term)
-
+      
       inputkeywordsdf_covid <- keywords_melted %>%
         fuzzy_inner_join(search_term_df, by=c("keyword" = "search_term"), match_fun= str_detect) %>%
         filter(state == input$state) %>%
         group_by(search_term, date) %>%
-        summarise(daily_total = sum(value), .groups = 'drop')
+        summarise(daily_total = sum(value), .groups = 'drop') %>%
+        mutate(term = search_term)
 
       inputkeywordsdf_covid$date <- as.Date(inputkeywordsdf_covid$date)
       
-      p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=search_term)) + # or 'value'
-        geom_line() + theme_minimal() + ylab("daily total") + xlab("") 
+      p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=term)) + # or 'value'
+        geom_line() + theme_minimal() + ylab("daily total") + xlab("") +
+        ggtitle("Popularity of Covid-19 keywords on Twitter from January 1 to September 30") +
+        theme(legend.position = "bottom") 
       
       p_interactive <- ggplotly(p, dynamicTicks = TRUE) %>%
         rangeslider() %>%
-        layout(hovermode = "x")
+        layout(hovermode = "x",
+               legend = list(orientation = "h"))
       p_interactive
     })
     
     output$mediacloud  <- renderPlotly({
 
+    # Media Cloud
     mc.key <- "2a54451396c08c15a024d81bffa18e6ce3bd5bfc9296363581e405ff4fcece80"
     mc.q1 <- "https://api.mediacloud.org/api/v2/stories_public/count?q="
     mc.q2 <- "&split=1&split_period=day&fq=tags_id_media:186572435&publish_date:%5B2020-01-01T00:00:00.000Z+TO+2020-09-30T00:00:00.000Z%5D&key="
 
     mc.query1 <- jsonlite::fromJSON(paste0(mc.q1, input$keyword3, mc.q2, mc.key))$counts
-
+    
     mc.query1$date <- as.Date(mc.query1$date, format ="%Y-%m-%d")
     mc.query1 <- mc.query1 %>% filter(date > "2020-01-01" & date < "2020-09-30")
+
+    ggtitledynamic <- paste0("Media coverage of '", input$keyword3,"' as measured by Media Cloud")
 
     p_mediacloud <- ggplot(mc.query1, aes(date, count)) +
       geom_line(stat="identity") +
       theme_minimal() +
       ylab("Stories per day") +
       xlab("") +
+      ggtitle(ggtitledynamic) +
       scale_x_date(breaks = date_breaks("1 week"), labels = date_format("%d %b"))
 
     p_mediacloud_interactive <- ggplotly(p_mediacloud, dynamicTicks = TRUE) %>%
       rangeslider() %>%
       layout(hovermode = "x")
     p_mediacloud_interactive
+   
     })
     
     # Top keywords table 
     
     output$topkeywords <- DT::renderDataTable({
-    
-    topkeywords_tbl <- keywords_melted %>%
+
+    topkeywords_tbl <- keywords_melted_topkeywords_perstate %>%
         filter(state == input$state) %>%
-        group_by(keyword) %>%
-        summarise(total = sum(value), .groups = 'drop') %>% 
-        arrange(desc(total))  
-    
+        select(keyword, total) %>%
+        arrange(desc(total))
+
     topkeywords_tbl_format <- topkeywords_tbl %>%
         datatable(extensions = 'Buttons', options = list(dom = 'Btpl',
                                                         buttons = list('copy', list(extend = 'csv', filename= 'covid-tweets-top-keywords'))
@@ -700,7 +715,7 @@ server <- function(input, output, session) {
                   colnames = c("rank", "keyword", "total")) %>%
         formatStyle(
             'total',
-            background = styleColorBar(range(topkeywords_tbl$total), 'lightblue')) 
+            background = styleColorBar(range(topkeywords_tbl$total), 'lightblue'))
     topkeywords_tbl_format
     })
     
