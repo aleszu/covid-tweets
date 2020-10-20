@@ -17,7 +17,7 @@ library(fuzzyjoin)
 library(DT)
 library(plotly)
 
-# Keywords data
+# Keywords data (with state and national joined)
 # Updated 2020-10-17
 keyword_state_timeseries <- fread("keyword_state_timeseries101620.tsv")
 keyword_state_timeseries$state <- str_replace_all(keyword_state_timeseries$state, "national", "National")
@@ -30,7 +30,7 @@ keywords_melted <- melt(keyword_state_timeseries,
 
 keywords_melted_topkeywords_perstate <- fread("keywords_melted_topkeywords_perstate.csv")
 
-# Leaderboards data (state + national)
+# Leaderboards data (with state and national joined)
 # Updated 2020-10-07
 state_domain_leaderboards_Oct7 <- fread("state_domain_leaderboards_Oct7.csv")
 
@@ -43,7 +43,7 @@ state_url_leaderboards_lastmonth_top10_titles$first_date <- as.Date(state_url_le
 # Updated 2020-10-07
 tfidf_top50_titles <- fread("tfidf_top50_titles_Oct7.csv")
 
-# Ingest **pre-processed** monthly ranked leaderboards 
+# Ingest pre-processed monthly ranked leaderboards (with state and national joined)
 # Updated 2020-10-07
 state_domain_leaderboards_monthy_all <- fread("state_domain_leaderboards_monthy_all_Oct7.csv")
 
@@ -90,7 +90,7 @@ ui <- navbarPage("Covid-19 tweets",
                                            color:black;
                                            padding-bottom: 10px;
                                            display:block; }"),
-                              #tags$head(includeHTML(("tracker.html"))),
+                              tags$head(includeHTML(("tracker.html"))),
                               tags$style(HTML(".navbar-default .navbar-brand {color: #000000;}"))), 
                               br(),
                               hr(),
@@ -281,17 +281,19 @@ ui <- navbarPage("Covid-19 tweets",
                                      br(),
                                      div("These findings are the product of a collaboration at the ",
                                          tags$a(href="https://lazerlab.net/", "Lazer Lab", target="_blank"),
-                                         " at the Network Science Institute, Northeastern University, Boston. For additional information and press requests, contact David Lazer (d.lazer@neu.edu)."),
+                                         " at the Network Science Institute, Northeastern University, Boston. For additional information and press requests, contact David Lazer at d.lazer@neu.edu, Katherine Ognyanova at katya.ognyanova@rutgers.edu, and Matthew A. Baum at matthew_baum@hks.harvard.edu."),
                                      br(),
                                      div("This app was built by ",
                                          tags$a(href="http://aleszu.com/", "Aleszu Bajak", target="_blank"), 
-                                         " at Northeastern's School of Journalism, with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab."),
+                                         " at Northeastern's School of Journalism with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab."),
                                      br(),
                                      h3("About the data"),
                                      br(),
                                      div("Between January 1st and September 30th, 2020, we collected COVID-19 related tweets from registered voters in America. We examined the content posted by a list of accounts matched to demographic information such as age, race, gender and political party affiliation (1). Our full panel contains 1.6 million accounts, of which 527,958 tweeted about COVID-19. The total number of COVID-19 tweets is 29,662,169. We then collected all the URLs shared by our panel and removed URLs from platforms, such as YouTube, Facebook, Instagram, etc, so our sample contains mainly news domains."),
                                      br(),
-                                     div("We retained only COVID-19 tweets by filtering using a broad list of 974 multi-lingual keywords, phrases and hashtags related to COVID-19. The keyword list contains words directly related to COVID-19 (e.g. coronavirus, COVID-19) and also those related to phenomenon that occurred as a result of the virus (e.g. “reopening”) . A tweet was included in the sample if it contained at least one item from our list; it could be contained in the tweet text, quoted text, hashtag or any part of the URL string -- this does not not include the content from the linked web page. For more details on COVID-19 tweet selection, see Gallagher et al 2020. (2)."),
+                                     div("We retained only COVID-19 tweets by filtering using a broad list of ",
+                                     tags$a(href="https://ryanjgallagher.github.io/files/research/covid_keywords_lazer_lab.tsv", "974 multi-lingual keywords, phrases and hashtags"),
+                                     "related to COVID-19. The keyword list contains words directly related to COVID-19 (e.g. coronavirus, COVID-19) and also those related to phenomenon that occurred as a result of the virus (e.g. “reopening”) . A tweet was included in the sample if it contained at least one item from our list; it could be contained in the tweet text, quoted text, hashtag or any part of the URL string -- this does not not include the content from the linked web page. For more details on COVID-19 tweet selection, see Gallagher et al 2020. (2)."),
                                      br(),
                                      div("We then extracted all the shared URLs, domains and Covid-19 keywords from these tweets."),
                                      br(),
@@ -306,7 +308,7 @@ ui <- navbarPage("Covid-19 tweets",
                                      br(),
                                      div("The media attention feature searches",
                                          tags$a(href="https://mediacloud.org", "Media Cloud's", target="_blank"),
-                                         "'U.S. Top Newspapers 2018' collection of 50 media sources -- including The Washington Post, The New York Times, USA TODAY and The Wall Street Journal -- which is based on research from the Pew Research Center published in August 2019. A full list of sources can be found ",
+                                         "'U.S. Top Newspapers 2018' collection of 50 media sources -- which including The Washington Post, The New York Times, USA TODAY and The Wall Street Journal -- which is based on research from the Pew Research Center published in August 2019. A full list of sources can be found ",
                                          tags$a(href="https://sources.mediacloud.org/#/collections/186572435", "here.", target="_blank")
                                          ),
                                      br(),
@@ -660,7 +662,7 @@ server <- function(input, output, session) {
       
       p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=term)) + # or 'value'
         geom_line() + theme_minimal() + ylab("daily total") + xlab("") +
-        ggtitle("Popularity of Covid-19 keywords on Twitter from January 1 to September 30") +
+        ggtitle("Popularity of Covid-19 keywords on Twitter from Jan 1 to Sep 30") +
         theme(legend.position = "bottom") 
       
       p_interactive <- ggplotly(p, dynamicTicks = TRUE) %>%
