@@ -14,7 +14,7 @@ Demographics of COVID-19 fake news sharing on Twitter
 
 ## Visualization app
 
-[Explore app here](https://storybench.shinyapps.io/covid-tweets/).
+Explore app here.
 
 ![gif](https://raw.githubusercontent.com/aleszu/covid-tweets/main/covid-tweets-screenshot.png)
 
