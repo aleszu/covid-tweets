@@ -183,14 +183,14 @@ ui <- navbarPage("Covid-19 tweets",
                               ),
                               
                               hr(),
-                              h4("Sharing demographics of top domains from January 1 to September 30", align="center"),
+                              h4("Who is sharing those top domains?", align="center"),
                               br(),
                               fluidRow(
                                   column(2),
                                   column(2, align="center",
                                          selectInput("demo",
                                                      "Filter by age group",
-                                                     choices = c(demo_select$demo), selected="50-64")
+                                                     choices = c(demo_select$demo), selected="18-29")
                                   ),
                                   column(4),
                                   column(2, align="center",
@@ -287,6 +287,14 @@ ui <- navbarPage("Covid-19 tweets",
                                          tags$a(href="http://aleszu.com/", "Aleszu Bajak", target="_blank"), 
                                          " at Northeastern's School of Journalism with help from Damian Ruck, Hong Qu, Sarah Shugars, Alexi Quintana and the Lazer Lab."),
                                      br(),
+                                     h3("Full written report"), 
+                                     br(),
+                                     div(tags$a(href="https://kateto.net/covid19/COVID19%20CONSORTIUM%20REPORT%2018%20FAKE%20NEWS%20TWITTER%20OCT%202020.pdf", "Demographics of COVID-19 fake news sharing on Twitter", target="_blank")),
+                                     br(),
+                                     h3("One-page report about this app"), 
+                                     br(),
+                                     div(tags$a(href="https://storybench.org/statelogos/COVID19TweetDashboard.pdf", "COVID-19 Tweets Visualization Dashboard", target="_blank")),
+                                     br(),
                                      h3("About the data"),
                                      br(),
                                      div("Between January 1st and September 30th, 2020, we collected COVID-19 related tweets from registered voters in America. We examined the content posted by a list of accounts matched to demographic information such as age, race, gender and political party affiliation (1). Our full panel contains 1.6 million accounts, of which 527,958 tweeted about COVID-19. The total number of COVID-19 tweets is 29,662,169. We then collected all the URLs shared by our panel and removed URLs from platforms, such as YouTube, Facebook, Instagram, etc, so our sample contains mainly news domains."),
@@ -301,7 +309,7 @@ ui <- navbarPage("Covid-19 tweets",
                                      div("For the top 10 URLs in each state and nationally, we identify the title for the news articles. We do this by scraping the HTML code from the URL link and extracting the contents of the “title” meta tags. We were able to do this for 93% of the top 10 URLS. To highlight the URLs that are distinctive to a certain state, but not to others, we calculated the TF-IDF scores for each URL relative to state using URLs shared since January. TF-IDF gives us a way of emphasizing the URLs that are uniquely popular in one state."),
                                      br(),
                                      h4("Domains"),
-                                     div("We present the most shared domains in each state and nationally. We also breakdown the sample by age and political affiliation (1). Political affiliation is decided, either Democrat, Independent or Republican, using a political classifier from Targetsmart. Each person in our sample is assigned a score between 0 and 100, based on a number of factors that predict party affiliation, ranging from self-reported registered party, mass local voting for state and national elections, % votes in Repubican/Democractic primaries and many others."),
+                                     div("We present the most shared domains in each state and nationally. We breakdown who is sharing each domain by age and political affiliation (1). Political affiliation is decided, either Democrat, Independent or Republican, using a political classifier from Targetsmart. Each person in our sample is assigned a score between 0 and 100, based on a number of factors that predict party affiliation, ranging from self-reported registered party, mass local voting for state and national elections, % votes in Repubican/Democractic primaries and many others."),
                                      br(),
                                      h4("Keywords"),
                                      div("We track the frequency of our COVID-19 search terms on a daily basis. We only include keywords that have been shared more than ten times between January 1st and September 30th, 2020."),
@@ -647,6 +655,10 @@ server <- function(input, output, session) {
     
     output$mainbarchart <- renderPlotly({
       
+      shiny::validate(
+        need(input$keywords != "", "Please write in a keyword")
+      )
+      
       search_term <- strsplit(input$keywords, ",")[[1]] %>% str_trim()
       search_term_df <- as.data.frame(search_term)
       search_term_df$search_term <- as.character(search_term_df$search_term)
@@ -660,15 +672,20 @@ server <- function(input, output, session) {
 
       inputkeywordsdf_covid$date <- as.Date(inputkeywordsdf_covid$date)
       
+      shiny::validate(
+        need(dim(inputkeywordsdf_covid)[1] != 0, "Please try another keyword. Hint: Try some of the keywords at the bottom of this page.")
+      )
+      
       p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=term)) + # or 'value'
         geom_line() + theme_minimal() + ylab("daily total") + xlab("") +
-        ggtitle("Popularity of Covid-19 keywords on Twitter from Jan 1 to Sep 30") +
+        labs(title="Popularity of Covid-19 keywords on Twitter from Jan 1 to Sep 30") +
+        #     caption="Covid-19 tweets project at Northeastern University") +
         theme(legend.position = "bottom") 
       
       p_interactive <- ggplotly(p, dynamicTicks = TRUE) %>%
         rangeslider() %>%
         layout(hovermode = "x",
-               legend = list(orientation = "h"))
+               legend =list(orientation = "h"))
       p_interactive
     })
     
