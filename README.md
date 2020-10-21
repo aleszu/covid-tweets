@@ -10,11 +10,11 @@ This app was built by [Aleszu Bajak](http://aleszu.com/), at Northeastern's Scho
 
 ## Full written report
 
-Demographics of COVID-19 fake news sharing on Twitter
+[Demographics of COVID-19 fake news sharing on Twitter](https://kateto.net/covid19/COVID19%20CONSORTIUM%20REPORT%2018%20FAKE%20NEWS%20TWITTER%20OCT%202020.pdf)
 
 ## Visualization app
 
-Explore app here.
+[Explore app here](https://storybench.shinyapps.io/covid-tweets/).
 
 ![gif](https://raw.githubusercontent.com/aleszu/covid-tweets/main/covid-tweets-screenshot.png)
 
