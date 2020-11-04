@@ -18,9 +18,9 @@ library(DT)
 library(plotly)
 
 # Keywords data (with state and national joined)
-# Updated 2020-10-17
-keyword_state_timeseries <- fread("keyword_state_timeseries101620.tsv")
-keyword_state_timeseries$state <- str_replace_all(keyword_state_timeseries$state, "national", "National")
+# Updated 2020-10-30
+keyword_state_timeseries <- fread("keyword_state_timeseries103020.tsv")
+keyword_state_timeseries$state <- str_replace_all(keyword_state_timeseries$state, "overall", "National")
 keyword_state_timeseries <- keyword_state_timeseries %>%
   select(-keyword_category)
 keywords_melted <- melt(keyword_state_timeseries,
@@ -28,24 +28,31 @@ keywords_melted <- melt(keyword_state_timeseries,
                        variable.name = "date",
                        value.name = "value")
 
+# Updated 2020-10-30
 keywords_melted_topkeywords_perstate <- fread("keywords_melted_topkeywords_perstate.csv")
 
+# Fake news keywords tab
+# Updated 2020-10-30
+fakenewskeywords <- fread("keyword_timeseries_fake_news.tsv")
+top_fakenewskeywords_pivot <- fread("top_fakenewskeywords_pivot.csv")
+fakenewskeywords_melted_top_sumd <- fread("fakenewskeywords_melted_top_sumd.csv")
+
 # Leaderboards data (with state and national joined)
-# Updated 2020-10-07
-state_domain_leaderboards_Oct7 <- fread("state_domain_leaderboards_Oct7.csv")
+# Updated 2020-10-30
+state_domain_leaderboards <- fread("state_domain_leaderboards_Oct30.csv")
 
 # Ingest df of top 10 URLs per state that have had titles scraped
-# Updated 2020-10-07
-state_url_leaderboards_lastmonth_top10_titles <- fread("state_and_national_url_months1thru9_top10_titles.csv")
+# Updated 2020-10-30
+state_url_leaderboards_lastmonth_top10_titles <- fread("state_and_national_url_months1thru10_top10_titles.csv")
 state_url_leaderboards_lastmonth_top10_titles$first_date <- as.Date(state_url_leaderboards_lastmonth_top10_titles$first_date)
 
 # TFIDF of URLs since January, top 50 have had titles scraped
-# Updated 2020-10-07
-tfidf_top50_titles <- fread("tfidf_top50_titles_Oct7.csv")
+# Updated 2020-10-30
+tfidf_top50_titles <- fread("tfidf_top50_titles_Oct30.csv")
 
 # Ingest pre-processed monthly ranked leaderboards (with state and national joined)
-# Updated 2020-10-07
-state_domain_leaderboards_monthy_all <- fread("state_domain_leaderboards_monthy_all_Oct7.csv")
+# Updated 2020-10-30
+state_domain_leaderboards_monthy_all <- fread("state_domain_leaderboards_monthly_all_Oct30.csv")
 
 # State abbreviations and names
 state_abbr_and_names <- fread("state_abbr_and_names.csv")
@@ -100,7 +107,7 @@ ui <- navbarPage("Covid-19 tweets",
                               tags$div(
                                 "This dashboard created by researchers at the ",
                                 tags$a(href="https://lazerlab.net/", "Lazer Lab", target="_blank"),
-                                "allows you to explore the top links, domains and keywords extracted from 29 million tweets related to Covid-19 shared between January 1st and September 30th, 2020 by over half a million Americans for whom we have demographic information such as age, state of residence and political party registration. Here's how to use it:"
+                                "allows you to explore the top links, domains and keywords extracted from 29 million tweets related to Covid-19 shared between January 1st and October 30th, 2020 by over half a million Americans for whom we have demographic information such as age, state of residence and political party registration. Here's how to use it:"
                                 ,style = "float:left; text-align:left;")
                                     ),
                               column(2)
@@ -138,7 +145,7 @@ ui <- navbarPage("Covid-19 tweets",
                                          selectInput("month",
                                                      "Choose a month",
                                                      choices = c(state_url_leaderboards_lastmonth_top10_titles$month),
-                                                     selected = "September")
+                                                     selected = "October")
                                          ),
                                   column(10, 
                                          h4(textOutput("input_state_title")), #"Top links shared in the last month", align = "center"),
@@ -173,7 +180,7 @@ ui <- navbarPage("Covid-19 tweets",
                                          uiOutput("statelogo3")
                                          ),
                                   column(5, 
-                                         h4("Top domains shared from January 1 to September 30", align = "center"),
+                                         h4("Top domains shared from January 1 to October 30", align = "center"),
                                          br(),
                                          DTOutput("top_domains","100%"), align="center"),
                                   column(5, 
@@ -234,6 +241,14 @@ ui <- navbarPage("Covid-19 tweets",
                                          )
                                   
                               ),
+                              
+                              fluidRow(
+                                column(2),
+                                column(10,
+                                              align="center",
+                                              DTOutput("exportkeywordsearch","100%")
+                                              )   
+                                   ),
                               br(),
                               br(),
                               fluidRow(
@@ -273,6 +288,57 @@ ui <- navbarPage("Covid-19 tweets",
                               )   
                           )
                  ),
+                 tabPanel("Fake news keywords",
+                          fluidPage(
+                            tags$div(class="tagline",
+                                     tags$p("The Covid-19 tweets project at Northeastern University aims to understand how users across the United States are sharing pandemic-related information",
+                                            align="right", style = "float:right; width: 400px; font-size: 8pt; font-style: italic;")),
+                            br(),
+                            hr(),
+                            fluidRow(
+                              column(2,
+                                     align="center",
+                                     textOutput("selectedstate5"),
+                                     uiOutput("statelogo5")
+                              ),
+                              column(10,
+                                     plotlyOutput("mainfakelinechart", "90%", 500),
+                                     align="center"
+                              )
+                            ),
+                            br(),
+                            br(),
+                            fluidRow(
+                              column(2),
+                              column(10,
+                                     h4("Keyword prevalence in tweets containing links to fake news domains", align = "center"),
+                                     h5("Percent of keywords from tweets linking to web domains classified as fake,\nnot fake or unknown (ten keywords with highest fake news percentage)"),
+                                     plotlyOutput("topfakestacked", "90%", 500),
+                                     align="center"
+                              )   
+                            ),
+                            br(),
+                            br(),
+                            fluidRow(
+                              column(2), 
+                              column(10,
+                                     align="center",
+                                     DTOutput("topfakekeywords","100%")
+                              )
+                            ),
+                            br(),
+                            br(),
+                            fluidRow(column(2), 
+                                     column(9),
+                                     column(1)
+                            ), 
+                            fluidRow( br(),
+                                      br(),
+                                      br(),
+                                      br()
+                            )   
+                          )
+                 ),
                  tabPanel("About", 
                           fluidPage(
                               column(2),
@@ -297,12 +363,14 @@ ui <- navbarPage("Covid-19 tweets",
                                      br(),
                                      h3("About the data"),
                                      br(),
-                                     div("Between January 1st and September 30th, 2020, we collected COVID-19 related tweets from registered voters in America. We examined the content posted by a list of accounts matched to demographic information such as age, race, gender and political party affiliation (1). Our full panel contains 1.6 million accounts, of which 527,958 tweeted about COVID-19. The total number of COVID-19 tweets is 29,662,169. We then collected all the URLs shared by our panel and removed URLs from platforms, such as YouTube, Facebook, Instagram, etc, so our sample contains mainly news domains."),
+                                     div("Between January 1st and October 30th, 2020, we collected COVID-19 related tweets from registered voters in America. We examined the content posted by a list of accounts matched to demographic information such as age, race, gender and political party affiliation (1). Our full panel contains 1.6 million accounts, of which 536,785 tweeted about COVID-19. The total number of COVID-19 tweets is 33,012,555. We then collected all the URLs shared by our panel and removed URLs from platforms, such as YouTube, Facebook, Instagram, etc, so our sample contains mainly news domains."),
                                      br(),
                                      div("We retained only COVID-19 tweets by filtering using a broad list of ",
                                      tags$a(href="https://ryanjgallagher.github.io/files/research/covid_keywords_lazer_lab.tsv", "974 multi-lingual keywords, phrases and hashtags"),
-                                     "related to COVID-19. The keyword list contains words directly related to COVID-19 (e.g. coronavirus, COVID-19) and also those related to phenomenon that occurred as a result of the virus (e.g. “reopening”) . A tweet was included in the sample if it contained at least one item from our list; it could be contained in the tweet text, quoted text, hashtag or any part of the URL string -- this does not not include the content from the linked web page. For more details on COVID-19 tweet selection, see Gallagher et al 2020. (2)."),
+                                     "related to COVID-19. The keyword list contains words directly related to COVID-19 (e.g. coronavirus, COVID-19) and also those related to phenomenon that occurred as a result of the virus (e.g. “reopening”) . A tweet was included in the sample if it contained at least one item from our list; it could be contained in the tweet text, quoted text, hashtag or any part of the URL string -- this does not not include the content from the linked web page. For more details on COVID-19 tweet selection, see Gallagher et al (2)."),
                                      br(),
+                                     div("We then collected the COVID-19 URLs shared by our panel and classified them as originating from a web domain that we classified as either fake, not fake or unknown. Of the 33,012,555 COVID-19 tweets in our panel, 11,108,159 contained at least one URL. The fake news classifications were based on Grinberg et al (3), which has a three tier classification system for fake news domains: orange, red and black. Here we classify “black” and “red” domains as fake, where “black” domains are “a set of websites taken from preexisting lists of fake news sources,” and “red” domains “spread falsehoods that clearly reflect a flawed editorial process.” We do not include domains classified as “orange” because the authors “were less certain that the falsehoods stemmed from a systematically flawed process."),
+                                     br(),                                   
                                      div("We then extracted all the shared URLs, domains and Covid-19 keywords from these tweets."),
                                      br(),
                                      h4("URLs"),
@@ -312,7 +380,7 @@ ui <- navbarPage("Covid-19 tweets",
                                      div("We present the most shared domains in each state and nationally. We breakdown who is sharing each domain by age and political affiliation (1). Political affiliation is decided, either Democrat, Independent or Republican, using a political classifier from Targetsmart. Each person in our sample is assigned a score between 0 and 100, based on a number of factors that predict party affiliation, ranging from self-reported registered party, mass local voting for state and national elections, % votes in Repubican/Democractic primaries and many others."),
                                      br(),
                                      h4("Keywords"),
-                                     div("We track the frequency of our COVID-19 search terms on a daily basis. We only include keywords that have been shared more than ten times between January 1st and September 30th, 2020."),
+                                     div("We track the frequency of our COVID-19 search terms on a daily basis. We only include keywords that have been shared more than ten times between January 1st and October 30th, 2020."),
                                      br(),
                                      div("The media attention feature searches",
                                          tags$a(href="https://mediacloud.org", "Media Cloud's", target="_blank"),
@@ -320,8 +388,10 @@ ui <- navbarPage("Covid-19 tweets",
                                          tags$a(href="https://sources.mediacloud.org/#/collections/186572435", "here.", target="_blank")
                                          ),
                                      br(),
+                                     div("We also focus on keywords from tweets that share fake news domains. In the “Fake news keywords” tab, we highlight the 15 keywords that are shared most often in fake news tweets, as a proportion of total keyword occurrences. We only include keywords that have been shared more than 10 times in fake news tweets."),
+                                     br(),
                                      h4("Download the data"),
-                                     div("Data and figures are available to download via the CSV option on tables and the camera icon on interactive plots."),
+                                     div("Data and figures are available to download via the CSV option on tables and the camera icon on interactive plots. To download entire table, select the maximum number of entries. Multiple CSVs may need to be downloaded for keywords."),
                                      br(),
                                      br(),
                                      br(),
@@ -332,6 +402,9 @@ ui <- navbarPage("Covid-19 tweets",
                                      div("2. Gallagher, R. J., Doroshenko, L., Shugars, S., Lazer, D., & Welles, B. F. (2020). ",
                                      tags$a(href="http://arxiv.org/abs/2009.07255", "Sustained Online Amplification of COVID-19 Elites in the United States.", target="_blank")),
                                      br(),
+                                     div("3. Grinberg, N., Joseph, K., Friedland, L., Swire-Thompson, B., & Lazer, D. (2019). ",
+                                         tags$a(href="https://science.sciencemag.org/content/363/6425/374.abstract", "Fake news on Twitter during the 2016 U.S. presidential election.", target="_blank"),
+                                         "Science, 363(6425), 374–378."),
                                      br()
                           ) 
                         )
@@ -352,7 +425,7 @@ server <- function(input, output, session) {
           updateSelectInput(session,
                             "month",
                             "Choose a month",
-                            selected = "September",
+                            selected = "October",
                             choices = c(state_url_leaderboards_lastmonth_top10_titles$month))
           
         }
@@ -419,6 +492,18 @@ server <- function(input, output, session) {
       statename
     })
     
+    output$statelogo5 <- renderUI({
+      tags$img(src = "https://storybench.org/statelogos/National.svg")
+    })
+    
+    output$selectedstate5 <- renderText({ 
+      statename <- state_abbr_and_names %>%
+        filter(state == "National") %>%
+        select(name) %>%
+        as.character() 
+      statename
+    })
+    
     output$input_state_title <- renderText({
         statename <- state_abbr_and_names %>%
           filter(state == input$state) %>%
@@ -434,7 +519,7 @@ server <- function(input, output, session) {
         filter(state == input$state) %>%
         select(name) %>%
         as.character() 
-      state_title <- paste("Top 50 links distinctive to", statename, "from January 1 to September 30") 
+      state_title <- paste("Top 50 links distinctive to", statename, "from January 1 to October 30") 
       state_title
     })
     
@@ -447,7 +532,7 @@ server <- function(input, output, session) {
         filter(state == input$state) %>%
         select(name) %>%
         as.character() 
-      state_title <- paste("Most popular", statename, "keywords from January 1 to September 30") 
+      state_title <- paste("Most popular", statename, "keywords from January 1 to October 30") 
       state_title
     })
     
@@ -487,9 +572,9 @@ server <- function(input, output, session) {
             filter(state == input$state) %>%
             rename(first_shared = first_date) %>%
             arrange(desc(tf_idf)) %>%
-            select(title, count, first_shared, url, domain, total_shares) %>%
+            select(title, count, first_shared, url, domain) %>%
             mutate(title = paste0("<a href='", url,"' target='_blank'>", title,"</a>")) %>%
-            select(title, count, first_shared, domain, total_shares) 
+            select(title, count, first_shared, domain) 
         output_top50_distinctive_table
     },
     extensions = 'Buttons',
@@ -510,7 +595,7 @@ server <- function(input, output, session) {
             filter(!domain %in% shortenedurls) %>%
             select(state, domain, rank, month) %>%
             filter(state == input$state) %>%
-            filter(month == "2020-09-01") %>% # CHANGE MONTH INPUT
+            filter(month == "2020-10-01") %>% # CHANGE MONTH INPUT
             arrange(rank) %>%
             distinct()
     
@@ -546,13 +631,13 @@ server <- function(input, output, session) {
             shiny::need(input$state,"Choose a state")
         )
         
-        state_month <- state_domain_leaderboards_Oct7 %>%
+        state_month <- state_domain_leaderboards %>%
             filter(state== input$state) %>%      # CHANGE STATE2 INPUT
             filter(!domain %in% shortenedurls)
         
         state_month_topdomains <- state_month %>%
             select(domain, count, unique_users) %>% #, month) %>%
-            #filter(month == "2020-09-01" ) %>% # CHANGE MONTH INPUT 
+            #filter(month == "2020-10-01" ) %>% # CHANGE MONTH INPUT 
             arrange(desc(count)) %>%
             slice_max(count, n=100)
         
@@ -580,7 +665,7 @@ server <- function(input, output, session) {
             shiny::need(input$state,"Choose a state")
         )
         
-        state_topdomains_demos <- state_domain_leaderboards_Oct7 %>%
+        state_topdomains_demos <- state_domain_leaderboards %>%
             filter(state == input$state) %>% # CHANGE STATE INPUT
             filter(!domain %in% shortenedurls) %>%
             arrange(desc(count))
@@ -621,7 +706,7 @@ server <- function(input, output, session) {
             shiny::need(input$state,"Choose a state")
         )
 
-        state_topdomains_demos <- state_domain_leaderboards_Oct7 %>%
+        state_topdomains_demos <- state_domain_leaderboards %>%
             filter(state == input$state) %>% # CHANGE STATE INPUT
             filter(!domain %in% shortenedurls) %>%
             arrange(desc(count))
@@ -678,7 +763,7 @@ server <- function(input, output, session) {
       
       p <- ggplot(inputkeywordsdf_covid, aes(date, daily_total, color=term)) + # or 'value'
         geom_line() + theme_minimal() + ylab("daily total") + xlab("") +
-        labs(title="Popularity of Covid-19 keywords on Twitter from Jan 1 to Sep 30") +
+        labs(title="Popularity of Covid-19 keywords on Twitter from Jan 1 to Oct 30") +
         #     caption="Covid-19 tweets project at Northeastern University") +
         theme(legend.position = "bottom") 
       
@@ -689,17 +774,55 @@ server <- function(input, output, session) {
       p_interactive
     })
     
+    # Export keywords search
+    
+    output$exportkeywordsearch <- DT::renderDataTable({
+      
+    shiny::validate(
+      need(input$keywords != "", "Please write in a keyword")
+    )
+    
+    search_term <- strsplit(input$keywords, ",")[[1]] %>% str_trim()
+    search_term_df <- as.data.frame(search_term)
+    search_term_df$search_term <- as.character(search_term_df$search_term)
+    
+    inputkeywordsdf_covid <- keywords_melted %>%
+      fuzzy_inner_join(search_term_df, by=c("keyword" = "search_term"), match_fun= str_detect) %>%
+      filter(state == input$state) %>%
+      group_by(search_term, date) %>%
+      summarise(daily_total = sum(value), .groups = 'drop') %>%
+      mutate(term = search_term)
+    
+    inputkeywordsdf_covid$date <- as.Date(inputkeywordsdf_covid$date)
+    
+    shiny::validate(
+      need(dim(inputkeywordsdf_covid)[1] != 0, "Please try another keyword. Hint: Try some of the keywords at the bottom of this page.")
+    )
+    
+    inputkeywordsdf_covid_tbl <- inputkeywordsdf_covid %>%
+      select(search_term, date, daily_total) %>%
+      datatable(extensions = 'Buttons', options = list(dom = 'Blftp',
+                                                       buttons = list('copy', list(extend = 'csv', filename= 'covid-tweets-your-keywords'))
+      ))
+    
+    inputkeywordsdf_covid_tbl
+    
+    })
+    
+    
+    
+    
     output$mediacloud  <- renderPlotly({
 
     # Media Cloud
     mc.key <- "2a54451396c08c15a024d81bffa18e6ce3bd5bfc9296363581e405ff4fcece80"
     mc.q1 <- "https://api.mediacloud.org/api/v2/stories_public/count?q="
-    mc.q2 <- "&split=1&split_period=day&fq=tags_id_media:186572435&publish_date:%5B2020-01-01T00:00:00.000Z+TO+2020-09-30T00:00:00.000Z%5D&key="
+    mc.q2 <- "&split=1&split_period=day&fq=tags_id_media:186572435&publish_date:%5B2020-01-01T00:00:00.000Z+TO+2020-10-30T00:00:00.000Z%5D&key="
 
     mc.query1 <- jsonlite::fromJSON(paste0(mc.q1, input$keyword3, mc.q2, mc.key))$counts
     
     mc.query1$date <- as.Date(mc.query1$date, format ="%Y-%m-%d")
-    mc.query1 <- mc.query1 %>% filter(date > "2020-01-01" & date < "2020-09-30")
+    mc.query1 <- mc.query1 %>% filter(date > "2020-01-01" & date < "2020-10-30")
 
     ggtitledynamic <- paste0("Media coverage of '", input$keyword3,"' as measured by Media Cloud")
 
@@ -737,6 +860,65 @@ server <- function(input, output, session) {
             background = styleColorBar(range(topkeywords_tbl$total), 'lightblue'))
     topkeywords_tbl_format
     })
+    
+    
+    output$mainfakelinechart <- renderPlotly({
+      
+      fakenewskeywords_melted_ggplot <- fakenewskeywords_melted_top_sumd
+      fakenewskeywords_melted_ggplot$date <- as.Date(fakenewskeywords_melted_ggplot$date)
+      
+      p_fake <- ggplot(fakenewskeywords_melted_ggplot, aes(date, daily_total, color=keyword)) + # or 'value'
+        geom_line() + theme_minimal() + ylab("daily total") + xlab("")
+      
+      p_fake_interactive <- ggplotly(p_fake, dynamicTicks = TRUE) %>%
+        rangeslider() %>%
+        layout(hovermode = "closest")
+      p_fake_interactive
+      
+    })
+    
+    
+    output$topfakestacked <- renderPlotly({
+    
+      
+      keyword_percent <- c("dr. mikovits", "restaurants closed", "event 201" ,
+                           "lock down", "wuhanflu" ,"birx" ,"wuhanvirus" ,"immunity passport", 
+                           "anti-lockdown", "quarantining")
+      
+      fake_keywords_stacked <- fread("fake_keywords_stacked.csv")
+      
+      p_fakestacked <- ggplot(fake_keywords_stacked,aes(fill=fake_news, y=percent, x=num_keyword)) + #theme_fivethirtyeight() + 
+            geom_bar(#position="stack", 
+            stat="identity", 
+            position = position_fill(reverse = TRUE)) +
+      theme_minimal() +
+      coord_flip() + scale_fill_manual(values = c("#863605",'grey',"#228B22"),
+                                       labels=c("Not Fake",'Unknown','Fake')) +
+      scale_x_continuous(breaks=1:10,
+                         labels=rev(keyword_percent)) + 
+      theme(legend.title = element_blank() #,
+            #legend.position = "none"
+      ) + xlab("") +
+      labs(title = "",
+           subtitle = "") #+ 
+    # Percent of keywords from tweets linking to web domains classified as fake,\nnot fake or unknown (ten keywords with highest fake news percentage)
+    
+    fakeplotly <- ggplotly(p_fakestacked, tooltip=c("percent", "fake_news"))
+    fakeplotly
+    
+    })
+    
+    
+    output$topfakekeywords <- DT::renderDataTable({
+      
+      top_fakenewskeywords_pivot_tbl <- top_fakenewskeywords_pivot %>%
+      datatable(extensions = 'Buttons', options = list(dom = 'Blftp',
+                                                       buttons = list('copy', list(extend = 'csv', filename= 'covid-tweets-fakenews-keywords'))),
+                colnames = c("rank", "keyword", "total", "total from fake news tweets"))
+      top_fakenewskeywords_pivot_tbl
+    
+    })
+    
     
 }
 
